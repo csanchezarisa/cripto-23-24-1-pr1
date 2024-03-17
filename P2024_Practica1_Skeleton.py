@@ -24,7 +24,23 @@ def get_character_position(character: str) -> int:
     """
     return VALID_CHARS.find(character)
 
-def list_to_string(list: list[int]) -> str:
+
+def string_to_index_list(string: str) -> list[int]:
+    """
+    Converts a string into a list of indexes based on valid characters list
+    :param string: message to be converted to list
+    :return: index list based on valid characters list
+    """
+    index_list: list[int] = []
+
+    for c in string:
+        index: int = get_character_position(c)
+        index_list.append(index)
+
+    return index_list
+
+
+def index_list_to_string(list: list[int]) -> str:
     """
     Generates a string using a list of character indexes. These indexes should be based on the valid characters list
     :param list: list containing the characters indexes
@@ -86,7 +102,6 @@ def uoc_hill_cipher(message: str, key: list[list[int]]):
     # aplicarlo en caso de tener un mensaje más largo que la clave
 
     for i in range(0, reps):
-        char_index: list[int] = []  # Será el vector que almacene las posiciones de los caracteres
 
         # Dividimos el mensaje porciones que puedan ser encriptadas con el tamaño de la clave
         substr: str = message[(key_size * i):(key_size * i + key_size)]
@@ -95,23 +110,21 @@ def uoc_hill_cipher(message: str, key: list[list[int]]):
         substr += exes
 
         # Bucamos el índice de cada caracter en base a la lista de caracteres válidos
-        for c in substr:
-            index: int = get_character_position(c)
-            char_index.append(index)
+        char_index: list[int] = string_to_index_list(substr)
 
         # Realizamos la operación de Hill con las matrices
         result_matrix = key_matrix.dot(np.array(char_index))
         result_matrix = np.mod(result_matrix, len(VALID_CHARS))
 
         # Traducimos la matriz resultante en mensaje cifrado
-        ciphertext += list_to_string(result_matrix)
+        ciphertext += index_list_to_string(result_matrix)
 
     # --------------------------------
 
     return ciphertext
 
 
-def uoc_hill_decipher(message, key):
+def uoc_hill_decipher(message: str, key: list[list[int]]):
     """
     EXERCISE 3: Hill decipher
     :message: message to decipher (ciphertext)
