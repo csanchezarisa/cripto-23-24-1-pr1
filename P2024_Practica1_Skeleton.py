@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from math import ceil
-import numpy as np
 
+import numpy as np
 
 # --- IMPLEMENTATION GOES HERE -----------------------------------------------
 #  Student helpers (functions, constants, etc.) can be defined here, if needed
@@ -80,6 +80,31 @@ def uoc_hill_cipher(message: str, key: list[list[int]]):
     ciphertext = ""
 
     #### IMPLEMENTATION GOES HERE ####
+    key_matrix = np.array(key)
+    key_size = len(key)  # Tamaño de la clave empleada
+    reps: int = ceil(len(message) / key_size)  # Calcula cuantas veces se debera ejecutar el cifrado para poder
+    # aplicarlo en caso de tener un mensaje más largo que la clave
+
+    for i in range(0, reps):
+        char_index: list[int] = []  # Será el vector que almacene las posiciones de los caracteres
+
+        # Dividimos el mensaje porciones que puedan ser encriptadas con el tamaño de la clave
+        substr: str = message[(key_size * i):(key_size * i + key_size)]
+        # Calculamos cuántas 'X' habrá que añadir si el tamaño de la porción es menor al de la clave
+        exes: str = "X" * (key_size - len(substr))
+        substr += exes
+
+        # Bucamos el índice de cada caracter en base a la lista de caracteres válidos
+        for c in substr:
+            index: int = get_character_position(c)
+            char_index.append(index)
+
+        # Realizamos la operación de Hill con las matrices
+        result_matrix = key_matrix.dot(np.array(char_index))
+        result_matrix = np.mod(result_matrix, len(VALID_CHARS))
+
+        # Traducimos la matriz resultante en mensaje cifrado
+        ciphertext += list_to_string(result_matrix)
 
     # --------------------------------
 
