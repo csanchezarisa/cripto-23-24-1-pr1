@@ -6,6 +6,7 @@ import numpy as np
 
 # --- IMPLEMENTATION GOES HERE -----------------------------------------------
 #  Student helpers (functions, constants, etc.) can be defined here, if needed
+PADDING_CHAR: str = 'X'
 VALID_CHARS: str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,:? "
 
 def get_random_number() -> int:
@@ -40,19 +41,50 @@ def string_to_index_list(string: str) -> list[int]:
     return index_list
 
 
-def index_list_to_string(list: list[int]) -> str:
+def index_list_to_string(index_list: list[int]) -> str:
     """
     Generates a string using a list of character indexes. These indexes should be based on the valid characters list
-    :param list: list containing the characters indexes
+    :param index_list: list containing the characters indexes
     :return: a string that translates each index into a valid char
     """
     message: str = ""
 
-    for i in list:
+    for i in index_list:
         message += VALID_CHARS[i]
 
     return message
 
+
+def get_inverse_determinant(determinant: int) -> int:
+    """
+    Calculates the determinant inverse modulo 41. This value is the number of valid characters
+    :param determinant: determinant to be processed
+    :return: determinant inverse modulo 41
+    """
+    valid_chars_length = len(VALID_CHARS)
+    determinant_inv = None
+
+    for i in range(valid_chars_length):
+        if (determinant * i) % valid_chars_length == 1:
+            determinant_inv = i
+            break
+
+    if determinant_inv is None:
+        raise ValueError(f'Cannot find multiplicative inverse of determinant modulo {valid_chars_length}')
+
+    return determinant_inv
+
+
+def remove_padding(text: str) -> str:
+    """
+
+    :param text:
+    :return:
+    """
+    while text.endswith(PADDING_CHAR):
+        text = text.rstrip(PADDING_CHAR)
+
+    return text.strip()
 # ----------------------------------------------------------------------------
 
 
@@ -101,12 +133,12 @@ def uoc_hill_cipher(message: str, key: list[list[int]]):
     reps: int = ceil(len(message) / key_size)  # Calcula cuantas veces se debera ejecutar el cifrado para poder
     # aplicarlo en caso de tener un mensaje más largo que la clave
 
-    for i in range(0, reps):
+    for i in range(reps):
 
         # Dividimos el mensaje porciones que puedan ser encriptadas con el tamaño de la clave
         substr: str = message[(key_size * i):(key_size * i + key_size)]
         # Calculamos cuántas 'X' habrá que añadir si el tamaño de la porción es menor al de la clave
-        exes: str = "X" * (key_size - len(substr))
+        exes: str = PADDING_CHAR * (key_size - len(substr))
         substr += exes
 
         # Bucamos el índice de cada caracter en base a la lista de caracteres válidos
@@ -136,10 +168,40 @@ def uoc_hill_decipher(message: str, key: list[list[int]]):
     plaintext = ""
 
     #### IMPLEMENTATION GOES HERE ####
+    key_size: int = len(key)
+    reps: int = ceil(len(message) / key_size)  # Calcula cuantas veces se debera ejecutar el cifrado para poder
 
+    # Calculamos el determinante de la matriz key
+    key_matrix = np.array(key)
+    determinant = int(round(np.linalg.det(key_matrix)))
 
+    # Caclulamos el determinante inverso módulo 41
+    determinant_inv = get_inverse_determinant(determinant)
 
+    # Calculamos la matriz de adjuntos de key
+    adjugate = np.round(np.linalg.inv(key_matrix) * determinant).astype(int)
 
+    # Calculamos la matriz inversa de key
+    key_inverse = adjugate.dot(determinant_inv)
+    key_inverse = np.mod(key_inverse, len(VALID_CHARS))
+
+    for i in range(reps):
+        # Dividimos el mensaje porciones que puedan ser desencriptadas con el tamaño de la clave
+        substr: str = message[(key_size * i):(key_size * i + key_size)]
+
+        # Bucamos el índice de cada caracter en base a la lista de caracteres válidos
+        char_index: list[int] = string_to_index_list(substr)
+
+        # Realizamos la operación de Hill con las matrices
+        char_matrix = np.array(char_index)
+        result_matrix = np.dot(key_inverse, char_matrix)
+        result_matrix = np.mod(result_matrix, len(VALID_CHARS))
+
+        # Traducimos la matriz resultante en mensaje descifrado
+        plaintext += index_list_to_string(result_matrix)
+
+    # Eliminamos el padding de 'X'
+    plaintext = plaintext.rstrip(PADDING_CHAR)
     # --------------------------------
 
     return plaintext
